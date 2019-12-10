@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_mqtt_location_example/MqttClientWrapper.dart';
+import 'package:flutter_mqtt_location_example/locationWrapper.dart';
+import 'package:flutter_mqtt_location_example/mqttClientWrapper.dart';
 import 'package:flutter_mqtt_location_example/models.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
@@ -32,16 +33,16 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
 
   MQTTClientWrapper mqttClientWrapper;
+  LocationWrapper locationWrapper;
 
   LocationData currentLocation;
-
-  var location = new Location();
 
   GoogleMapController _controller;
 
   void setup() {
+    locationWrapper = LocationWrapper((newLocation) => mqttClientWrapper.publishLocation(newLocation));
     mqttClientWrapper = MQTTClientWrapper(
-            () => prepareLocationMonitoring(),
+            () => locationWrapper.prepareLocationMonitoring(),
             (newLocationJson) => gotNewLocation(newLocationJson)
     );
     mqttClientWrapper.prepareMqttClient();
@@ -52,26 +53,6 @@ class _MyHomePageState extends State<MyHomePage> {
       this.currentLocation = newLocationData;
     });
     animateCameraToNewLocation(newLocationData);
-  }
-
-  void prepareLocationMonitoring() {
-    location.hasPermission().then((bool hasPermission) {
-      if (!hasPermission) {
-        location.requestPermission().then((bool permissionGranted) {
-          if (permissionGranted) {
-            subscribeToLocation();
-          }
-        });
-      } else {
-        subscribeToLocation();
-      }
-    });
-  }
-
-  void subscribeToLocation() {
-    location.onLocationChanged().listen((LocationData newLocation) {
-      mqttClientWrapper.publishLocation(newLocation);
-    });
   }
 
   void animateCameraToNewLocation(LocationData newLocation) {
